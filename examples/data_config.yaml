@@ -1,0 +1,95 @@
+MAJOR_TISSUE_LIST: 
+  - "heart"
+  - "blood"
+  - "brain"
+  - "lung"
+  - "kidney"
+  - "intestine"
+  - "pancreas"
+
+MAX_PARTITION_SIZE: 200_000
+
+# cellxgene_census version
+VERSION: "2023-07-25"
+
+CANCER_LIST: 
+  - "malignant ovarian serous tumor"
+  - "glioblastoma"
+  - "lung adenocarcinoma"
+  - "squamous cell lung carcinoma"
+  - "small cell lung carcinoma"
+  - "non-small cell lung carcinoma"
+  - "B-cell non-Hodgkin lymphoma"
+  - "follicular lymphoma"
+  - "gastric cancer"
+  - "blastoma"
+  - "pilocytic astrocytoma"
+  - "acute myeloid leukemia" 
+  - "tubular adenoma"
+  - "clear cell renal carcinoma"
+  - "adenocarcinoma"
+  - "tubulovillous adenoma"
+  - "colorectal cancer"
+  - "Wilms tumor"
+  - "acute promyelocytic leukemia"
+  - "neuroendocrine carcinoma"
+  - "chromophobe renal cell carcinoma"
+
+VALUE_FILTER:
+  # Main tissue types, known suspension and not disease
+  heart: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'heart'"
+  blood: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'blood'"
+  brain: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'brain'"
+  lung: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'lung'"
+  kidney: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'kidney'"
+  intestine: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'intestine'"
+  pancreas: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and tissue_general == 'pancreas'"
+
+  # Other tissue types with known suspension
+  others: "suspension_type != 'na' 
+    and disease == 'normal' 
+    and (tissue_general != 'heart') 
+    and (tissue_general != 'blood') 
+    and (tissue_general != 'brain') 
+    and (tissue_general != 'lung') 
+    and (tissue_general != 'kidney') 
+    and (tissue_general != 'intestine') 
+    and (tissue_general != 'pancreas')"
+    
+  # Cancer with known suspensino and subset of disease types
+  pan-cancer: "(suspension_type != 'na') 
+    and ((disease == 'malignant ovarian serous tumor') 
+    or (disease == 'glioblastoma') 
+    or (disease == 'lung adenocarcinoma') 
+    or (disease == 'squamous cell lung carcinoma') 
+    or (disease == 'small cell lung carcinoma') 
+    or (disease == 'non-small cell lung carcinoma') 
+    or (disease == 'B-cell non-Hodgkin lymphoma') 
+    or (disease == 'follicular lymphoma') 
+    or (disease == 'gastric cancer') 
+    or (disease == 'blastoma') 
+    or (disease == 'pilocytic astrocytoma') 
+    or (disease == 'acute myeloid leukemia') 
+    or (disease == 'tubular adenoma') 
+    or (disease == 'clear cell renal carcinoma') 
+    or (disease == 'adenocarcinoma') 
+    or (disease == 'tubulovillous adenoma') 
+    or (disease == 'colorectal cancer') 
+    or (disease == 'Wilms tumor') 
+    or (disease == 'acute promyelocytic leukemia') 
+    or (disease == 'neuroendocrine carcinoma') 
+    or (disease == 'chromophobe renal cell carcinoma'))"
