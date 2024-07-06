@@ -1,6 +1,6 @@
 { "encoder":
         {"layers": [
-        {"type": "Linear", "in_features": 784, "out_features": 400},
+        {"type": "Linear", "in_features": 22, "out_features": 400},
         {"type": "ReLU"},
         {"type": "Linear", "in_features": 400, "out_features": 200},
         {"type": "ReLU"},
