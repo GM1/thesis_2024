@@ -7,7 +7,7 @@ import os
 
 import yaml
 
-with open('/Workspace/Repos/gmahon1@kenvue.com/kvai_usr_gmahon1/scDL/data_processing/data_config.yaml') as f:
+with open('/content/thesis_2024/data_pipeline/data_config.yaml') as f:
     data_config = yaml.safe_load(f)
 
 VERSION = data_config["VERSION"]

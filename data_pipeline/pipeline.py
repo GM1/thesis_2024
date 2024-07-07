@@ -1,7 +1,7 @@
 # Databricks notebook source
 import cellxgene_census
 import pandas as pd
-import pyspark.pandas as ps
+# import pyspark.pandas as ps
 import numpy as np
 from typing import List
 import os
@@ -126,45 +126,45 @@ def _digitize(x: np.ndarray, bins: np.ndarray, side="one") -> np.ndarray:
 
 
 
-def load_base_vocab(organism="mus_musculus"): 
-    if spark.catalog.tableExists(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary"):
-        return spark.table(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
-    else:
-        return None
+# def load_base_vocab(organism="mus_musculus"): 
+#     if spark.catalog.tableExists(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary"):
+#         return spark.table(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
+#     else:
+#         return None
 
-def create_base_vocab(anndata, organism="mus_musculus"):
-    vocab = anndata.var[["feature_name", "soma_joinid"]]
-    # Used to start at 1, but should actually start at zero
-    # vocab.soma_joinid = vocab.soma_joinid.add(1)
-    vocab.rename(columns={"feature_name": "gene_name", "soma_joinid": "gene_id"}, inplace=True)
-    spark.createDataFrame(vocab).write.format("delta").mode("append").saveAsTable(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
+# def create_base_vocab(anndata, organism="mus_musculus"):
+#     vocab = anndata.var[["feature_name", "soma_joinid"]]
+#     # Used to start at 1, but should actually start at zero
+#     # vocab.soma_joinid = vocab.soma_joinid.add(1)
+#     vocab.rename(columns={"feature_name": "gene_name", "soma_joinid": "gene_id"}, inplace=True)
+#     spark.createDataFrame(vocab).write.format("delta").mode("append").saveAsTable(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
 
-# TODO: test this functionality and add celltypes column to cellbank format...
-def update_base_vocab(anndata, organism="mus_musculus"):   
-    incoming = anndata.var[["feature_name"]]
-    incoming.rename(columns={"feature_name": "gene_name"}, inplace=True)
-    existing = spark.table(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary").toPandas()
-    net_new = set(incoming.gene_name).difference(existing.gene_name)
-    print(net_new)
-    if net_new:
-        where_diff = incoming.gene_name.isin(net_new)
+# # TODO: test this functionality and add celltypes column to cellbank format...
+# def update_base_vocab(anndata, organism="mus_musculus"):   
+#     incoming = anndata.var[["feature_name"]]
+#     incoming.rename(columns={"feature_name": "gene_name"}, inplace=True)
+#     existing = spark.table(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary").toPandas()
+#     net_new = set(incoming.gene_name).difference(existing.gene_name)
+#     print(net_new)
+#     if net_new:
+#         where_diff = incoming.gene_name.isin(net_new)
 
-        previous_highest_gene_id = existing.gene_id.max()
+#         previous_highest_gene_id = existing.gene_id.max()
 
-        new_genes = incoming[where_diff]
-        new_genes.insert(0, 'gene_id', range(previous_highest_gene_id + 1, previous_highest_gene_id + 1 + len(incoming[where_diff])))
+#         new_genes = incoming[where_diff]
+#         new_genes.insert(0, 'gene_id', range(previous_highest_gene_id + 1, previous_highest_gene_id + 1 + len(incoming[where_diff])))
 
-        new_vocab = pd.concat([existing, new_genes])
-        new_vocab.sort_values(by=["gene_id"], inplace=True)
+#         new_vocab = pd.concat([existing, new_genes])
+#         new_vocab.sort_values(by=["gene_id"], inplace=True)
 
-        spark.createDataFrame(d).write.format("delta").mode("append").saveAsTable(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
+#         spark.createDataFrame(d).write.format("delta").mode("append").saveAsTable(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
 
-    else:
-        print("INFO: No new genes to add to the vocabulary table")
+#     else:
+#         print("INFO: No new genes to add to the vocabulary table")
 
 
-def check_vocab_exists(organism="mus_musculus"):    
-    return spark.catalog.tableExists(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
+# def check_vocab_exists(organism="mus_musculus"):    
+#     return spark.catalog.tableExists(f"{CATALOG}.{SCHEMA}.{organism}_gene_vocabulary")
 
 # COMMAND ----------
 
@@ -203,46 +203,46 @@ def generate_tokens(anndata, ind_map):
 def add_metadata(df, cell_type):
     return df.withColumn("celltypes", lit(cell_type))
 
-def anndata_to_cell_bank_test(anndata, cell_type, delta_table="", output_directory=""):
-    """
-        Function converts an incoming anndata file to a cell bank format. 
-        Writes to delta table or parquet files. 
-        Returns DataFrame
-    """
-    if not output_directory:
-        raise Exception("Please provide an output directory")
+# def anndata_to_cell_bank_test(anndata, cell_type, delta_table="", output_directory=""):
+#     """
+#         Function converts an incoming anndata file to a cell bank format. 
+#         Writes to delta table or parquet files. 
+#         Returns DataFrame
+#     """
+#     if not output_directory:
+#         raise Exception("Please provide an output directory")
     
-    if not delta_table:
-        print("WARNING: No delta table name provided, delta table will not be created")
+#     if not delta_table:
+#         print("WARNING: No delta table name provided, delta table will not be created")
 
-    base_vocab = load_base_vocab()
-    incoming_vocab = load_new_vocab(anndata)
+#     base_vocab = load_base_vocab()
+#     incoming_vocab = load_new_vocab(anndata)
 
-    base_vocab.createOrReplaceTempView("base_gene_vocabulary")
-    incoming_vocab.createOrReplaceTempView("incoming_gene_vocabulary")
+#     base_vocab.createOrReplaceTempView("base_gene_vocabulary")
+#     incoming_vocab.createOrReplaceTempView("incoming_gene_vocabulary")
     
-    print("Mapping new vocab to old")
-    mapped = spark.sql("""SELECT index, gene_id AS base_gene_id 
-                            FROM base_gene_vocabulary 
-                            INNER JOIN incoming_gene_vocabulary 
-                            ON gene_name = feature_name""")
+#     print("Mapping new vocab to old")
+#     mapped = spark.sql("""SELECT index, gene_id AS base_gene_id 
+#                             FROM base_gene_vocabulary 
+#                             INNER JOIN incoming_gene_vocabulary 
+#                             ON gene_name = feature_name""")
     
-    ind_map = {x[0]: x[1] for x in mapped.select("index", "base_gene_id").collect()}
+#     ind_map = {x[0]: x[1] for x in mapped.select("index", "base_gene_id").collect()}
 
-    tokens = generate_tokens(anndata, ind_map)
+#     tokens = generate_tokens(anndata, ind_map)
 
-    tokens = ps.DataFrame.from_dict(tokens).to_spark()
+#     tokens = ps.DataFrame.from_dict(tokens).to_spark()
 
-    tokens = add_metadata(tokens, cell_type)
+#     tokens = add_metadata(tokens, cell_type)
 
-    if delta_table:
-        print("Creating delta table")
-        tokens.write.format("delta").mode("overwrite").saveAsTable(delta_table) # "kvai_usr_gmahon1.thesis.microglia_sequences_test_data"
+#     if delta_table:
+#         print("Creating delta table")
+#         tokens.write.format("delta").mode("overwrite").saveAsTable(delta_table) # "kvai_usr_gmahon1.thesis.microglia_sequences_test_data"
 
-    print("Writing to parquet files")
-    tokens.write.format("parquet").mode("overwrite").save(output_directory) # "/Volumes/kvai_usr_gmahon1/thesis/test_data/microglia"
+#     print("Writing to parquet files")
+#     tokens.write.format("parquet").mode("overwrite").save(output_directory) # "/Volumes/kvai_usr_gmahon1/thesis/test_data/microglia"
 
-    return tokens
+#     return tokens
 
 # COMMAND ----------
 
