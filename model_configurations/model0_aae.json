@@ -1,0 +1,25 @@
+{ "encoder":
+        {"layers": [
+        {"type": "Linear", "in_features": 52392, "out_features": 400},
+        {"type": "ReLU"},
+        {"type": "Linear", "in_features": 400, "out_features": 200},
+        {"type": "ReLU"},
+        {"type": "Linear", "in_features": 200, "out_features": 10}
+            ]},
+"decoder":
+        {"layers": [
+        {"type": "Linear", "in_features": 10, "out_features": 200},
+        {"type": "ReLU"},
+        {"type": "Linear", "in_features": 200, "out_features": 400},
+        {"type": "ReLU"},
+        {"type": "Linear", "in_features": 400, "out_features": 52392}
+            ]},
+"discriminator":
+        {"layers": [
+        {"type": "Linear", "in_features": 10, "out_features": 200},
+        {"type": "ReLU"},
+        {"type": "Linear", "in_features": 200, "out_features": 400},
+        {"type": "ReLU"},
+        {"type": "Linear", "in_features": 400, "out_features": 52392}
+            ]}
+}
