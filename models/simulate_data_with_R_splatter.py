@@ -13,6 +13,7 @@
 # MAGIC BiocManager::install("Seurat")
 # MAGIC BiocManager::install("patchwork")
 # MAGIC BiocManager::install("scater")
+# MAGIC BiocManager::install("DESeq2")
 
 # COMMAND ----------
 
@@ -41,12 +42,12 @@
 # MAGIC
 # MAGIC
 # MAGIC ##group= 2 dropout=1
-# MAGIC filepath <- "C:\\Users\\gmaho\\Desktop\\ai_masters_thesis\\simulated_datasets\\sim_g2_dropout_5.h5ad"
+# MAGIC filepath <- "C:\\Users\\gmaho\\Desktop\\ai_masters_thesis\\simulated_datasets\\sim_g2_dropout_1.h5ad"
 # MAGIC nGroups=2
 # MAGIC dropout=5
 # MAGIC group.prob <- rep(1, nGroups) / nGroups
 # MAGIC sim <- splatSimulate(group.prob=group.prob,
-# MAGIC                      nGenes=200,batchCells=2000,method = "groups",dropout.type='experiment',seed=42, dropout.shape=-1, dropout.mid=5) 
+# MAGIC                      nGenes=200,batchCells=2000,method = "groups",dropout.type='experiment',seed=42, dropout.shape=-1, dropout.mid=1) 
 # MAGIC counts<-counts(sim)
 # MAGIC libsizes <- colSums(counts)
 # MAGIC size.factors <- libsizes/mean(libsizes)
