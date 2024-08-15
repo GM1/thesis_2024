@@ -10,6 +10,8 @@ import torch.nn.functional as F
 import torch
 from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
+import sklearn
+import scanpy as sc
 
 from aae_components import *
 
@@ -95,7 +97,7 @@ class AAE(nn.Module):
         # df.to_csv(f"/content/drive/MyDrive/thesis_2024/ae_results_{dataset}_{time_signature}.csv")
     
     
-    def train(self, print_info=True, info_frequency=50):
+    def train(self, print_info=True, info_frequency=50, adata="EMPTY"):
         training_start_time = time.time()
         
         
@@ -152,9 +154,31 @@ class AAE(nn.Module):
                 reconstructed = self.decoder(latent_fake)
                 validity = self.discriminator(latent_fake)
 
-                g_loss_mse = mse_loss(reconstructed, target)
-                g_loss_bce = bce_loss(validity, valid)
-                g_loss = 0.999 * g_loss_mse + 0.001 * g_loss_bce
+                # TODO: Remove this comment
+                #Testing the exact design as specified in DB-AAE
+                recompressed = self.encoder(reconstructed)
+                validity = self.discriminator(recompressed)
+
+                # g_loss_mse = mse_loss(reconstructed, target)
+                # g_loss_bce = bce_loss(validity, valid)
+                # g_loss = 0.999 * g_loss_mse + 0.001 * g_loss_bce
+                decoded = reconstructed
+
+                y = np.array(adata.obs["Group"])
+                
+                detached_counts_d = decoded.detach().cpu().numpy()
+
+                adata_d = sc.AnnData(detached_counts_d, obs=pd.DataFrame(y, columns=["Group"]))
+
+                sc.tl.pca(adata_d)
+                sc.pp.neighbors(adata_d, n_neighbors=60, n_pcs=10)
+                sc.tl.umap(adata_d)
+
+                labels = adata_d.obs["Group"]
+
+                umap_silhouette = sklearn.metrics.silhouette_score(adata_d.obsm["X_umap"], labels)
+
+                g_loss = -umap_silhouette
 
                 g_loss.backward()
                 optimizer.step()
