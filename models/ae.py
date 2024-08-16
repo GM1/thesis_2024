@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
 
 from ae_components import *
+from loss_functions import *
 
 class AE():
     def __init__(self, scenario, 
@@ -39,6 +40,16 @@ class AE():
         self.dis_bce_losses = []
         self.training_duration = 0
         self.losses = {}
+
+    # mean_activation function using PyTorch
+    @staticmethod
+    def mean_activation(x):
+        return torch.clamp(torch.exp(x), 1e-5, 1e6)
+
+    # dispersion activation function using PyTorch
+    @staticmethod
+    def dispersion_activation(x):
+        return torch.clamp(F.softplus(x), 1e-4, 1e4)
 
     @staticmethod
     def set_requires_grad(model, requires_grad):
@@ -140,3 +151,56 @@ class AE():
                 }
 
         self.training_duration = training_end_time - training_start_time
+
+
+class NbAE(AE):
+    def __init__(self, init, debug=False):
+        super(AE, self).__init__()
+        self.init = init
+        input_dim = self.data_tensor.shape[1]  # Number of genes
+        hidden_dims = self.scenario["hidden_dims"]
+        latent_dim = self.scenario["latent_dim"]
+
+        # Define the layers
+        self.disp_layer = nn.Linear(hidden_dims[-1], input_dim)
+        self.mean_layer = nn.Linear(hidden_dims[-1], input_dim)
+
+        # Regularization can be done during the loss computation in PyTorch, not during layer initialization
+
+        # Custom layers
+        self.colwise_mult_layer = colwise_multi_layer()
+        self.slice_layer = SliceLayer(0)
+
+    # TODO: Change this to a train function and follow the same pattern as above in the original train function
+    # encoder and decoder are already initialized, just need to add the mean and dispersion layers and then
+    # implement the training step with backpropagation of the nb_loss function as per DCA original. 
+    def forward(self, input_layer, sf_layer):
+        disp = torch.clamp(F.softplus(self.disp_layer(self.decoder_output)), 1e-4, 1e4)
+        mean = torch.clamp(torch.exp(self.mean_layer(self.decoder_output)), 1e-5, 1e6)
+
+        output = self.colwise_mult_layer(mean, sf_layer)
+        output = self.slice_layer(output, disp)
+
+        # Create NB object with the computed dispersion
+
+        self.loss = nb_loss(theta=disp)
+
+        return output
+
+    def build_output(self):
+        # Not used in PyTorch; forward pass handles this logic.
+        pass
+
+    def predict(self, adata, mode='denoise', return_info=False, copy=False):
+        # Use the model for prediction
+        # You would typically define an evaluation loop here in PyTorch.
+        colnames = adata.var_names.values
+        rownames = adata.obs_names.values
+
+        res = super().predict(adata, mode, return_info, copy)
+        adata = res if copy else adata
+
+        if return_info:
+            adata.obsm['X_dca_dispersion'] = self.extra_models['dispersion'].predict(adata.X)
+
+        return adata if copy else None

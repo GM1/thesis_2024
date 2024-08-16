@@ -15,6 +15,9 @@ import scanpy as sc
 
 from aae_components import *
 
+# This version tested passing the previously decoded batch to the discriminator as described in the
+# DB-AAE paper. It did not work...
+
 class AAE(nn.Module):
     def __init__(self, scenario, 
                  n_epoch, 
