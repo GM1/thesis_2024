@@ -10,15 +10,11 @@ import torch.nn.functional as F
 import torch
 from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
-import sklearn
-import scanpy as sc
 
-from aae_components import *
+from ae_components import *
+from loss_functions import *
 
-# This version tested passing the previously decoded batch to the discriminator as described in the
-# DB-AAE paper. It did not work...
-
-class AAE(nn.Module):
+class AE():
     def __init__(self, scenario, 
                  n_epoch, 
                  dataloader_noise, 
@@ -26,7 +22,6 @@ class AAE(nn.Module):
                  data_tensor, 
                  dataset_path, 
                  dropout_prob=None):
-        super(AAE, self).__init__()
         self.scenario = scenario
         self.n_epoch = n_epoch
         self.epochs = range(1, self.n_epoch + 1)
@@ -37,10 +32,8 @@ class AAE(nn.Module):
         self.dataset_path = dataset_path
         self.encoder = None
         self.decoder = None
-        self.discriminator = None
-        self.distribution = "normal"
         self.time_signture = datetime.datetime.now().isoformat().replace(":", "-").replace(".", "-")
-        self._build_aae()
+        self._build_ae()
         self.learning_rate = 0.0002
         self.gen_rec_losses = []
         self.gen_bce_losses = []
@@ -48,12 +41,22 @@ class AAE(nn.Module):
         self.training_duration = 0
         self.losses = {}
 
+    # mean_activation function using PyTorch
+    @staticmethod
+    def mean_activation(x):
+        return torch.clamp(torch.exp(x), 1e-5, 1e6)
+
+    # dispersion activation function using PyTorch
+    @staticmethod
+    def dispersion_activation(x):
+        return torch.clamp(F.softplus(x), 1e-4, 1e4)
+
     @staticmethod
     def set_requires_grad(model, requires_grad):
         for param in model.parameters():
             param.requires_grad = requires_grad
 
-    def _build_aae(self):
+    def _build_ae(self):
         df = pd.DataFrame(columns=["objective", "batch_size", "epochs", "hidden_dims", "latent_dim",
                             "encoder_activations", "decoder_activations",
                             "mean_reconstruction_loss",
@@ -68,18 +71,14 @@ class AAE(nn.Module):
         latent_dim = self.scenario["latent_dim"]
         encoder_activations = self.scenario["encoder_activations"]
         decoder_activations = self.scenario["decoder_activations"]
-        if "distribution" in list(self.scenario.keys()):
-            self.distribution = self.scenario["distribution"].lower()
 
-        self.encoder = AAE_Encoder(input_dim, hidden_dims, latent_dim, encoder_activations, self.dropout_prob)
-        self.decoder = AAE_Decoder(latent_dim, hidden_dims, input_dim, decoder_activations, self.dropout_prob)
-        self.discriminator = AAE_Discriminator(latent_dim)
+        self.encoder = AE_Encoder(input_dim, hidden_dims, latent_dim, encoder_activations, self.dropout_prob)
+        self.decoder = AE_Decoder(latent_dim, hidden_dims, input_dim, decoder_activations, self.dropout_prob)
 
         # Send to GPU/TPU if available
         if torch.cuda.is_available():
             self.encoder.cuda()
             self.decoder.cuda()
-            self.discriminator.cuda()
 
         structure = "_".join(str(x) for x in hidden_dims)
         # torch.save(encoder, f"/content/drive/MyDrive/thesis_2024/ae_models/encoders/{time_signature}/ae_encoder_{objective}_{dataset}_{structure}_{time_signature}.pt")
@@ -100,17 +99,12 @@ class AAE(nn.Module):
         # df.to_csv(f"/content/drive/MyDrive/thesis_2024/ae_results_{dataset}_{time_signature}.csv")
     
     
-    def train(self, print_info=True, info_frequency=50, adata="EMPTY"):
+    def train(self, print_info=True, info_frequency=50):
         training_start_time = time.time()
         
-        
         optimizer = optim.RMSprop(list(self.encoder.parameters()) + list(self.decoder.parameters()), lr=self.learning_rate)
-        discriminator_optimizer = optim.RMSprop(self.discriminator.parameters(), lr=self.learning_rate)
 
         mse_loss = nn.MSELoss()
-        bce_loss = nn.BCELoss()
-
-        self.set_requires_grad(self.discriminator, False)
 
         self.encoder.train()
         self.decoder.train()
@@ -124,88 +118,89 @@ class AAE(nn.Module):
                 batch = batch_noise[0].cuda()
                 target = batch_normal[0].cuda()
                 batch_rows, batch_cols = batch.shape[0], batch.shape[1]
-                valid = torch.ones((batch_rows, 1)).float().cuda()
-                fake = torch.zeros((batch_rows, 1)).float().cuda()
 
                 # train auto encoder (reconstruction phase)
                 self.decoder.zero_grad()
                 self.encoder.zero_grad()
 
-                # Generate Latent Data
-                latent_fake = self.encoder(batch)
-                if self.distribution == "normal" or not self.distribution:
-                    latent_real = torch.randn((batch_rows, latent_fake.shape[1])).cuda()
-                elif self.distribution == "negative_binomial":
-                    latent_real = torch.tensor(np.random.negative_binomial(1, 0.5, (batch_rows, latent_fake.shape[1])), dtype=torch.float32).cuda()               
-                else:
-                    raise(ValueError, "Distribution not supported, please choose from \"normal\" or \"negative_binomial\"")
-
-                # Evaluate Discriminator
-                d_loss_real = discriminator_optimizer.zero_grad()
-                d_loss_real = bce_loss(self.discriminator(latent_real), valid)
-                # d_loss_real.backward()
-
-                d_loss_fake = discriminator_optimizer.zero_grad()
-                d_loss_fake = bce_loss(self.discriminator(latent_fake), fake)
-                # d_loss_fake.backward()
-
-                discriminator_optimizer.step()
-                d_loss = 0.5 * (d_loss_real + d_loss_fake)
+                # Generate Latent data
+                latent = self.encoder(batch)
 
                 # Train Generator
                 optimizer.zero_grad()
-                reconstructed = self.decoder(latent_fake)
-                validity = self.discriminator(latent_fake)
+                reconstructed = self.decoder(latent)
 
-                # TODO: Remove this comment
-                #Testing the exact design as specified in DB-AAE
-                recompressed = self.encoder(reconstructed)
-                validity = self.discriminator(recompressed)
+                g_loss_mse = mse_loss(reconstructed, target)
 
-                # g_loss_mse = mse_loss(reconstructed, target)
-                # g_loss_bce = bce_loss(validity, valid)
-                # g_loss = 0.999 * g_loss_mse + 0.001 * g_loss_bce
-                decoded = reconstructed
-
-                y = np.array(adata.obs["Group"])
-                
-                detached_counts_d = decoded.detach().cpu().numpy()
-
-                adata_d = sc.AnnData(detached_counts_d, obs=pd.DataFrame(y, columns=["Group"]))
-
-                sc.tl.pca(adata_d)
-                sc.pp.neighbors(adata_d, n_neighbors=60, n_pcs=10)
-                sc.tl.umap(adata_d)
-
-                labels = adata_d.obs["Group"]
-
-                umap_silhouette = sklearn.metrics.silhouette_score(adata_d.obsm["X_umap"], labels)
-
-                g_loss = -umap_silhouette
-
-                g_loss.backward()
+                g_loss_mse.backward()
                 optimizer.step()
 
                 self.gen_rec_losses.append(g_loss_mse.item())
-                self.gen_bce_losses.append(g_loss_bce.item())
-                self.dis_bce_losses.append(d_loss.item())
 
             if epoch % info_frequency == 0 and print_info:
                 # Every 10 epochs, measure the duration
                 stop = time.time()
-                print(f"[{epoch}/{len(self.epochs)}]: gen_rec_losses: {torch.mean(torch.FloatTensor(self.gen_rec_losses))}, \
-        gen_bce_loss: {torch.mean(torch.FloatTensor(self.gen_bce_losses))}, \
-        dis_bce_losses: {torch.mean(torch.FloatTensor(self.dis_bce_losses))} \
-        duration: {stop - start}s")
+                print(f"[{epoch}/{len(self.epochs)}]: \
+                      gen_rec_losses: {torch.mean(torch.FloatTensor(self.gen_rec_losses))},\
+                      duration: {stop - start}s")
 
         training_end_time = time.time()
 
         self.losses = {"mean_gen_rec_losses": torch.mean(torch.FloatTensor(self.gen_rec_losses)).detach().cpu().numpy().max(),
-                "mean_gen_bce_losses": torch.mean(torch.FloatTensor(self.gen_bce_losses)).detach().cpu().numpy().max(),
-                "mean_dis_bce_losses": torch.mean(torch.FloatTensor(self.dis_bce_losses)).detach().cpu().numpy().max(),
                 "min_gen_rec_losses": torch.min(torch.FloatTensor(self.gen_rec_losses)).detach().cpu().numpy().max(),
-                "min_gen_bce_losses": torch.min(torch.FloatTensor(self.gen_bce_losses)).detach().cpu().numpy().max(),
-                "min_dis_bce_losses": torch.min(torch.FloatTensor(self.dis_bce_losses)).detach().cpu().numpy().max(),
                 }
 
         self.training_duration = training_end_time - training_start_time
+
+
+class NbAE(AE):
+    def __init__(self, init, debug=False):
+        super(AE, self).__init__()
+        self.init = init
+        input_dim = self.data_tensor.shape[1]  # Number of genes
+        hidden_dims = self.scenario["hidden_dims"]
+        latent_dim = self.scenario["latent_dim"]
+
+        # Define the layers
+        self.disp_layer = nn.Linear(hidden_dims[-1], input_dim)
+        self.mean_layer = nn.Linear(hidden_dims[-1], input_dim)
+
+        # Regularization can be done during the loss computation in PyTorch, not during layer initialization
+
+        # Custom layers
+        self.colwise_mult_layer = colwise_multi_layer()
+        self.slice_layer = SliceLayer(0)
+
+    # TODO: Change this to a train function and follow the same pattern as above in the original train function
+    # encoder and decoder are already initialized, just need to add the mean and dispersion layers and then
+    # implement the training step with backpropagation of the nb_loss function
+    def forward(self, input_layer, sf_layer):
+        disp = torch.clamp(F.softplus(self.disp_layer(self.decoder_output)), 1e-4, 1e4)
+        mean = torch.clamp(torch.exp(self.mean_layer(self.decoder_output)), 1e-5, 1e6)
+
+        output = self.colwise_mult_layer(mean, sf_layer)
+        output = self.slice_layer(output, disp)
+
+        # Create NB object with the computed dispersion
+
+        self.loss = nb_loss(theta=disp)
+
+        return output
+
+    def build_output(self):
+        # Not used in PyTorch; forward pass handles this logic.
+        pass
+
+    def predict(self, adata, mode='denoise', return_info=False, copy=False):
+        # Use the model for prediction
+        # You would typically define an evaluation loop here in PyTorch.
+        colnames = adata.var_names.values
+        rownames = adata.obs_names.values
+
+        res = super().predict(adata, mode, return_info, copy)
+        adata = res if copy else adata
+
+        if return_info:
+            adata.obsm['X_dispersion'] = self.extra_models['dispersion'].predict(adata.X)
+
+        return adata if copy else None

@@ -53,11 +53,11 @@ def run_dimension_reduction_techniques(adata, obs_label_column):
 def original_plots(adata, output_file, obs_label_column, figures_directory, notebook_name, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save input data plots
-    fig = sc.pl.umap(adata, color=obs_label_column, title='Original Data - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata, color=obs_label_column, title='Original data - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}{notebook_name}_original_data_scanpy_umap_{output_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.pca(adata, color=obs_label_column, title='Original Data - PCA - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.pca(adata, color=obs_label_column, title='Original data - PCA - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}original_data_scanpy_pca_{output_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.tsne(adata, color=obs_label_column, title='Original Data - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.tsne(adata, color=obs_label_column, title='Original data - t-SNE - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}original_data_scanpy_tsne_{output_file}.png", dpi=300, bbox_inches='tight')
 
 
@@ -75,11 +75,11 @@ def generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_d
 def generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, notebook_name, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save decoded/denoised data plots
-    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised Data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}{notebook_name}_denoised_data_scanpy_umap_{noise_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised Data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}denoised_data_scanpy_pca_{noise_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised Data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}denoised_data_scanpy_tsne_{noise_file}.png", dpi=300, bbox_inches='tight')
 
 # COMMAND ----------

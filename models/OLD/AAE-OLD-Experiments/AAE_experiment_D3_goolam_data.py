@@ -1,10 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Experiment Results
-# MAGIC Objective of this experiment is to set the target reconstruction data as the raw data. 
-# MAGIC This approach may be used in DCA -   
-# MAGIC
-# MAGIC Finding = not a worthwhile investigation given time constraints
+# MAGIC with own preprocessing but this time batch size is 16 and 20 epochs
 
 # COMMAND ----------
 
@@ -55,11 +52,11 @@ def run_dimension_reduction_techniques(adata, obs_label_column):
 def original_plots(adata, output_file, obs_label_column, figures_directory, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save input data plots
-    fig = sc.pl.umap(adata, color=obs_label_column, title='Original Data - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata, color=obs_label_column, title='Original data - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_umap_{output_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.pca(adata, color=obs_label_column, title='Original Data - PCA - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.pca(adata, color=obs_label_column, title='Original data - PCA - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_pca_{output_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.tsne(adata, color=obs_label_column, title='Original Data - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.tsne(adata, color=obs_label_column, title='Original data - t-SNE - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_tsne_{output_file}.png", dpi=300, bbox_inches='tight')
 
 
@@ -77,11 +74,11 @@ def generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_d
 def generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save decoded/denoised data plots
-    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised Data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_umap_{noise_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised Data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_pca_{noise_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised Data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_tsne_{noise_file}.png", dpi=300, bbox_inches='tight')
 
 # COMMAND ----------
@@ -101,7 +98,7 @@ def generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_direc
 time_signature = datetime.now().isoformat(sep="-").replace(":", "~")[:-7]
 
 # VARIABLE - YOUR INPUT DATA DIRECTORY
-input_dataset_directory = "/Volumes/kvai_usr_gmahon1/thesis_2024/simulated_datasets/"
+input_dataset_directory = "/Volumes/kvai_usr_gmahon1/thesis_2024/raw_datasets/"
 
 # Root for the output directories, all output folders are created here
 root_output_directory = "/Volumes/kvai_usr_gmahon1/thesis_2024/"
@@ -137,7 +134,7 @@ experiment_description = \
     ability to learn to remove the noise in the datasets. 
     """
 preprocess_noisy_data = True
-preprocess_target_data = False
+preprocess_target_data = True
 
 # In some experiments, we are not interested in the plots.
 generate_plots = True
@@ -167,23 +164,16 @@ os.mkdir(results_directory)
 # Manual work required here if adding new data, 
 # these correspond to the noise and ground truth data pairings for training and evaluation
 # [(noisy_data, target_data)]
-experiment_pairs = [("sim_g2_no_dropout", "sim_g2_no_dropout"), 
-                    ("sim_g2_dropout_5", "sim_g2_no_dropout"),
-                    ("sim_g4_no_dropout", "sim_g4_no_dropout"),
-                    ("sim_g4_dropout_1", "sim_g4_no_dropout"),
-                    ("sim_g6_no_dropout", "sim_g6_no_dropout"),
-                    ("sim_g6_dropout_1", "sim_g6_no_dropout"),
-                    ("sim_g8_no_dropout", "sim_g8_no_dropout"),
-                    ("sim_g8_dropout_1", "sim_g8_no_dropout"),]
+experiment_pairs = [("goolam", "goolam")]
 
 # Number of epochs for training
-n_epoch = 150
+n_epoch = 20
 
 # Batch size for training
-batch_size = 32
+batch_size = 16
 
 # Name of column that identifies cell type of each cell
-obs_label_column = "Group" # "cell_type1", "str_label"
+obs_label_column = "cell_type1" # "cell_type1", "str_label", "Group"
 
 # Model configuration
 model_config = {"hidden_dims": [1024, 512],
@@ -222,10 +212,12 @@ for noise_file, target_file in experiment_pairs:
     target_adata = sc.read_h5ad(f"{input_dataset_directory}{target_file}.h5ad")
     
     if preprocess_noisy_data:
-        pf.preprocess(noisy_adata, target_sum=1e4, log_data=True, normalise=True)
+        pf.preprocess(noisy_adata, target_sum=1e4, log_data=True, normalise=True, n_top_genes=5000, min_cells=3)
+        noisy_adata = noisy_adata[:, noisy_adata.var['highly_variable']].copy()
         
     if preprocess_target_data:
-        pf.preprocess(target_adata, target_sum=1e4, log_data=True, normalise=True)
+        pf.preprocess(target_adata, target_sum=1e4, log_data=True, normalise=True, n_top_genes=5000, min_cells=3)
+        target_adata = target_adata[:, target_adata.var['highly_variable']].copy()
 
     assert noisy_adata.shape == target_adata.shape, "Input data shapes do not match"
 
@@ -296,7 +288,7 @@ for noise_file, target_file in experiment_pairs:
         generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, show_fig)
 
     # Save silhouette scores
-    labels = adata_d.obs["Group"]
+    labels = adata_d.obs[obs_label_column]
 
     pca_silhouette = sklearn.metrics.silhouette_score(adata_d.obsm["X_pca"], labels)
     umap_silhouette = sklearn.metrics.silhouette_score(adata_d.obsm["X_umap"], labels)
@@ -342,6 +334,10 @@ for noise_file, target_file in experiment_pairs:
     
 
 df.to_csv(f"/Volumes/kvai_usr_gmahon1/thesis_2024/results/{notebook_name}-{time_signature}_simulated_data.csv")
+
+# COMMAND ----------
+
+df.umap_silhouette
 
 # COMMAND ----------
 

@@ -47,16 +47,12 @@ def _nelem(x):
     nelem = torch.sum(~torch.isnan(x).float())
     return torch.where(nelem == 0., torch.tensor(1., dtype=x.dtype), nelem)
 
-# TODO: May change this to a function in order to simplify.
-# theta is the dispersion parameter and is a scalar
-# scale_factor, scales the negative binomial mean before the calculation of the loss,
-# to balance the learning rates of theta and the network weights.
+
 class nb_loss(nn.Module):
-    def __init__(self, theta=None, masking=False, scale_factor=1.0, debug=False):
+    def __init__(self, theta=None, masking=False, scale_factor=1.0):
         super(nb_loss, self).__init__()
         self.eps = 1e-10
         self.scale_factor = scale_factor
-        self.debug = debug
         self.masking = masking
         self.theta = theta
 
@@ -77,14 +73,6 @@ class nb_loss(nn.Module):
         t1 = torch.lgamma(theta + eps) + torch.lgamma(y_true + 1.0) - torch.lgamma(y_true + theta + eps)
         t2 = (theta + y_true) * torch.log(1.0 + (y_pred / (theta + eps))) + \
              (y_true * (torch.log(theta + eps) - torch.log(y_pred + eps)))
-
-        if self.debug:
-            assert torch.isfinite(y_pred).all(), 'y_pred has inf/nans'
-            assert torch.isfinite(t1).all(), 't1 has inf/nans'
-            assert torch.isfinite(t2).all(), 't2 has inf/nans'
-
-            print(f"Histogram t1: {t1.histc()}")
-            print(f"Histogram t2: {t2.histc()}")
 
         final = t1 + t2
 

@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 import sklearn
 
 # Custom imports
-from aae import AAE
+from aae_test import AAE
 from data_pipeline_functions import PipelineFunctions as pf
 
 # COMMAND ----------
@@ -45,7 +45,7 @@ from data_pipeline_functions import PipelineFunctions as pf
 def run_dimension_reduction_techniques(adata, obs_label_column):
     # Generate dimension reductions on input data
     sc.tl.pca(adata)
-    sc.pl.pca(adata, color=obs_label_column)
+    # sc.pl.pca(adata, color=obs_label_column)
     sc.pp.neighbors(adata, n_neighbors=60, n_pcs=10)
     sc.tl.umap(adata)
     sc.tl.tsne(adata)
@@ -53,11 +53,11 @@ def run_dimension_reduction_techniques(adata, obs_label_column):
 def original_plots(adata, output_file, obs_label_column, figures_directory, notebook_name, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save input data plots
-    fig = sc.pl.umap(adata, color=obs_label_column, title='Original Data - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata, color=obs_label_column, title='Original data - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}{notebook_name}_original_data_scanpy_umap_{output_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.pca(adata, color=obs_label_column, title='Original Data - PCA - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.pca(adata, color=obs_label_column, title='Original data - PCA - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}original_data_scanpy_pca_{output_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.tsne(adata, color=obs_label_column, title='Original Data - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.tsne(adata, color=obs_label_column, title='Original data - t-SNE - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}original_data_scanpy_tsne_{output_file}.png", dpi=300, bbox_inches='tight')
 
 
@@ -75,11 +75,11 @@ def generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_d
 def generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, notebook_name, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save decoded/denoised data plots
-    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised Data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}{notebook_name}_denoised_data_scanpy_umap_{noise_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised Data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}denoised_data_scanpy_pca_{noise_file}.png", dpi=300, bbox_inches='tight')
-    # fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised Data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    # fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
     # fig.savefig(f"{figures_directory}denoised_data_scanpy_tsne_{noise_file}.png", dpi=300, bbox_inches='tight')
 
 # COMMAND ----------
@@ -114,10 +114,6 @@ os.listdir(input_dataset_directory)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # Experiment Configurables
 
@@ -131,11 +127,11 @@ os.listdir(input_dataset_directory)
 
 # Add a brief description of the purpose of the experiment
 experiment_description = \
-    """testing multiple batch sizes to see if there's any effect on the results...
+    """testing with g_loss changed to using umap silhouette score....
     """
 
 # In some experiments, we are not interested in the plots.
-generate_plots = False
+generate_plots = True
 
 # This appears to make little to no difference, plots will be displayed during training anyways.
 show_fig=False
@@ -159,25 +155,25 @@ results_directory = f"{root_output_directory}results/{notebook_name}-{time_signa
 if not os.path.exists(f"{figures_directory}"):
     os.mkdir(figures_directory)
 
-if not os.path.exists(f"{figures_directory}"):
-    os.mkdir(figures_directory)
+if not os.path.exists(f"{results_directory}"):
+    os.mkdir(results_directory)
 
 # Manual work required here if adding new data, 
 # these correspond to the noise and ground truth data pairings for training and evaluation
 # [(noisy_data, target_data)]
-experiment_pairs = [("sim_g2_dropout_1", "sim_g2_dropout_1"),
-                    ("sim_g2_no_dropout", "sim_g2_no_dropout"),
-                    ("sim_g2_dropout_1", "sim_g2_no_dropout"),]
+experiment_pairs = [("sim_g2_dropout_1", "sim_g2_dropout_1"),]
+                    # ("sim_g2_no_dropout", "sim_g2_no_dropout"),
+                    # ("sim_g2_dropout_1", "sim_g2_no_dropout"),]
                     # ("sim_g6_no_dropout", "sim_g6_no_dropout"),
                     # ("sim_g6_dropout_1", "sim_g6_no_dropout"),
                     # ("sim_g8_no_dropout", "sim_g8_no_dropout"),
                     # ("sim_g8_dropout_1", "sim_g8_no_dropout"),
 
 # Number of epochs for training
-n_epoch = 150
+n_epoch = 25
 
 # Batch size for training
-batch_sizes = range(16,129,8)
+batch_sizes = [32] # range(16,129,8)
 
 # Name of column that identifies cell type of each cell
 obs_label_column = "Group" # "cell_type1", "str_label"
@@ -191,6 +187,10 @@ model_config = {"hidden_dims": [1024, 512],
 
 # The number of epochs that elapse before training losses are printed
 info_frequency = 50
+
+# COMMAND ----------
+
+notebook_name
 
 # COMMAND ----------
 
@@ -231,7 +231,7 @@ for batch_size in batch_sizes:
         run_dimension_reduction_techniques(target_adata, obs_label_column)
 
         if generate_plots:
-            original_plots(target_adata, target_file, obs_label_column, figures_directory, show_fig, notebook_name=notebook_name)
+            original_plots(target_adata, target_file, obs_label_column, figures_directory, show_fig, notebook_name)
 
         # No point in recalculating everything if the files are the same, so only execute when noise and target files are different.
         # perform umap, tsne, and pca on noise_adata iff input files are not the same
@@ -240,7 +240,7 @@ for batch_size in batch_sizes:
 
         if target_file != noise_file and generate_plots:
             # Generate dimension reductions on input data
-            original_plots(noisy_adata, noise_file, obs_label_column, figures_directory, show_fig, notebook_name=notebook_name)
+            original_plots(noisy_adata, noise_file, obs_label_column, figures_directory, show_fig, notebook_name)
 
         # Prep data for model
         X_normal = target_adata.X
@@ -266,7 +266,7 @@ for batch_size in batch_sizes:
         model = AAE(model_config, n_epoch, dataloader_noise, dataloader_normal, normal_data_tensor, dataset_path="")
 
         # Train model
-        model.train(info_frequency=info_frequency)
+        model.train(info_frequency=info_frequency, adata=noisy_adata)
 
         # Latent and decoded/denoised data
         latent_data = model.encoder(normal_data_tensor.cuda())
@@ -286,9 +286,9 @@ for batch_size in batch_sizes:
         run_dimension_reduction_techniques(adata_d, obs_label_column)
 
         if generate_plots:
-            generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_directory, show_fig, notebook_name=notebook_name)
+            generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_directory, show_fig, notebook_name)
 
-            generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, show_fig, notebook_name=notebook_name)
+            generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, show_fig, notebook_name)
 
         # Save silhouette scores
         labels = adata_d.obs["Group"]
@@ -337,6 +337,11 @@ for batch_size in batch_sizes:
         
 
     df.to_csv(f"/Volumes/kvai_usr_gmahon1/thesis_2024/results/{notebook_name}-{time_signature}_simulated_data.csv")
+
+# COMMAND ----------
+
+# Found that umap silhouette does not necessarily improve with more epochs, as is the case with AAE
+df
 
 # COMMAND ----------
 

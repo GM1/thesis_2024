@@ -1,14 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Experiment Results
-# MAGIC Performance matches expectations for g2 and g4 simulated datasets with and without dropout. 
-# MAGIC Dropout in g6 and g8 simulated data was very harsh compared to other papers and was difficult to 
-# MAGIC denoise. Silhouette scores for g6/g8 are generally negative. But again, the noise is very significant. 
-# MAGIC
-# MAGIC Results for g2 and g4 appear to be more indiciative of performance.
-# MAGIC
-# MAGIC Notebook "AAE_experiment_A1_sim_data" found no net benfit to using 300 epochs instead of 150 
-# MAGIC for training. Performance was evaluated on silhouette score. The end result is no net benefit.
+# MAGIC The purpose of this experiment was to test if there was any benefit to 300 epochs of training  
+# MAGIC over 150.  
+# MAGIC   
+# MAGIC Performance was evaluated on silhouette score.  
+# MAGIC The end result is no net benefit.
 
 # COMMAND ----------
 
@@ -59,11 +56,11 @@ def run_dimension_reduction_techniques(adata, obs_label_column):
 def original_plots(adata, output_file, obs_label_column, figures_directory, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save input data plots
-    fig = sc.pl.umap(adata, color=obs_label_column, title='Original Data - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata, color=obs_label_column, title='Original data - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_umap_{output_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.pca(adata, color=obs_label_column, title='Original Data - PCA - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.pca(adata, color=obs_label_column, title='Original data - PCA - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_pca_{output_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.tsne(adata, color=obs_label_column, title='Original Data - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.tsne(adata, color=obs_label_column, title='Original data - t-SNE - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_tsne_{output_file}.png", dpi=300, bbox_inches='tight')
 
 
@@ -81,11 +78,11 @@ def generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_d
 def generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save decoded/denoised data plots
-    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised Data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_umap_{noise_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised Data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_pca_{noise_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised Data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_tsne_{noise_file}.png", dpi=300, bbox_inches='tight')
 
 # COMMAND ----------
@@ -133,8 +130,11 @@ os.listdir(input_dataset_directory)
 
 # Add a brief description of the purpose of the experiment
 experiment_description = \
-    """Initial experiments, training the denoising autoencoder with
-    normal distribution on simulated data with groups of 2,4,6, and 8 cells.
+    """Same as notebook A0 but with epochs increased to 300 from 150,
+    training the denoising autoencoder with normal distribution on 
+    simulated data with groups of 2,4,6, and 8 cells.
+    The main purpose of this experiment is to further test the ability of the AAE on 
+    the simulated datasets with larger numbers of cell types: g4, g6 & g8.
     There are 8 different simulated datasets, each with 2,000 cellsand 200 genes.
     4 of the datasets are clean, and 4 contain noise.
     The purposed of this experiment is to demonstrate an AAE's
@@ -144,7 +144,7 @@ experiment_description = \
 # In some experiments, we are not interested in the plots.
 generate_plots = True
 
-# This appears to make little to no difference, plots will be displayed during training anyways.
+# This appears to make no difference, plots will be displayed during training anyways.
 show_fig=False
 
 # Whether or not to save the AAE models
@@ -179,7 +179,7 @@ experiment_pairs = [("sim_g2_no_dropout", "sim_g2_no_dropout"),
                     ("sim_g8_dropout_1", "sim_g8_no_dropout"),]
 
 # Number of epochs for training
-n_epoch = 150
+n_epoch = 300
 
 # Batch size for training
 batch_size = 32
@@ -195,7 +195,7 @@ model_config = {"hidden_dims": [1024, 512],
               }
 
 # The number of epochs that elapse before training losses are printed
-info_frequency = 10
+info_frequency = 50
 
 # COMMAND ----------
 

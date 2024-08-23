@@ -1,7 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Experiment Results
-# MAGIC Purpose of experiment is to test results with a Negative Binomial Distribution.
+# MAGIC Objective here is just to generate more datapoints for silhouette score so mean and average can be 
+# MAGIC generated
 
 # COMMAND ----------
 
@@ -52,11 +53,11 @@ def run_dimension_reduction_techniques(adata, obs_label_column):
 def original_plots(adata, output_file, obs_label_column, figures_directory, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save input data plots
-    fig = sc.pl.umap(adata, color=obs_label_column, title='Original Data - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata, color=obs_label_column, title='Original data - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_umap_{output_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.pca(adata, color=obs_label_column, title='Original Data - PCA - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.pca(adata, color=obs_label_column, title='Original data - PCA - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_pca_{output_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.tsne(adata, color=obs_label_column, title='Original Data - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.tsne(adata, color=obs_label_column, title='Original data - t-SNE - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}original_data_scanpy_tsne_{output_file}.png", dpi=300, bbox_inches='tight')
 
 
@@ -74,11 +75,11 @@ def generate_latent_space_plots(adata_e, noise_file, obs_label_column, figures_d
 def generate_denoised_plots(adata_d, noise_file, obs_label_column, figures_directory, show_fig=False):
     # Requires that run_dimension_reduction_techniques has been run beforehand
     # Save decoded/denoised data plots
-    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised Data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.umap(adata_d, color=obs_label_column, title='Denoised data AAE - UMAP - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_umap_{noise_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised Data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.pca(adata_d, color=obs_label_column, title='Denoised data AAE - PCA - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_pca_{noise_file}.png", dpi=300, bbox_inches='tight')
-    fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised Data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
+    fig = sc.pl.tsne(adata_d, color=obs_label_column, title='Denoised data AAE - t-SNE - Scanpy', return_fig=True, show=show_fig)
     fig.savefig(f"{figures_directory}denoised_data_scanpy_tsne_{noise_file}.png", dpi=300, bbox_inches='tight')
 
 # COMMAND ----------
@@ -118,27 +119,25 @@ os.listdir(input_dataset_directory)
 
 # COMMAND ----------
 
-# Manual work required here if adding new data, 
-# these correspond to the noise and ground truth data pairings for training and evaluation
-# [(noisy_data, target_data)]
-experiment_pairs = [("sim_g2_no_dropout", "sim_g2_no_dropout"), 
-                    ("sim_g2_dropout_5", "sim_g2_no_dropout"),
-                    ("sim_g4_no_dropout", "sim_g4_no_dropout"),
-                    ("sim_g4_dropout_1", "sim_g4_no_dropout"),]
+# Repeating experiment pairs, ten times to generate mean and variance for silhouette scores.
+# Discarding g6 and g8 as I amn't getting good results for those yet. 
+# Currently blaming the level of dropout in the data
+experiment_pairs = np.array([np.array(("sim_g2_no_dropout", "sim_g2_no_dropout")),
+                    np.array(("sim_g2_dropout_5", "sim_g2_no_dropout")),
+                    np.array(("sim_g4_no_dropout", "sim_g4_no_dropout")),
+                    np.array(("sim_g4_dropout_1", "sim_g4_no_dropout"))])
 
+# COMMAND ----------
 
-                    # ("sim_g6_no_dropout", "sim_g6_no_dropout"),
-                    # ("sim_g6_dropout_1", "sim_g6_no_dropout"),
-                    # ("sim_g8_no_dropout", "sim_g8_no_dropout"),
-                    # ("sim_g8_dropout_1", "sim_g8_no_dropout"),
+experiment_pairs =  np.repeat(experiment_pairs, 10, axis=0)
 
-# Model configuration
-model_config = {"hidden_dims": [1024, 512],
-              "latent_dim": 512,
-              "encoder_activations": ['leaky_relu', 'leaky_relu'],
-              "decoder_activations": ['leaky_relu', 'leaky_relu', 'relu'],
-              "distribution": "negative_binomial"
-              }
+# COMMAND ----------
+
+experiment_pairs.shape
+
+# COMMAND ----------
+
+experiment_pairs
 
 # COMMAND ----------
 
@@ -150,26 +149,23 @@ model_config = {"hidden_dims": [1024, 512],
 
 # Add a brief description of the purpose of the experiment
 experiment_description = \
-    """Initial experiments, training the denoising autoencoder with
-    normal distribution on simulated data with groups of 2,4,6, and 8 cells.
-    There are 8 different simulated datasets, each with 2,000 cellsand 200 genes.
-    4 of the datasets are clean, and 4 contain noise.
-    The purposed of this experiment is to demonstrate an AAE's
-    ability to learn to remove the noise in the datasets. 
+    """Same as notebook A1, but not interested in models, figures or denoised datasets. 
+       Primary interest is in generating multiple runs of the same data, to generate mean and averages of 
+       performance metrics. In the interest of thoroughness. 
     """
 
 # In some experiments, we are not interested in the plots.
-generate_plots = True
+generate_plots = False
 
-# This appears to make little to no difference, plots will be displayed during training anyways.
+# This appears to make no difference, plots will be displayed during training anyways.
 show_fig=False
 
 # Whether or not to save the AAE models
-save_model = True
+save_model = False
 
 # Whether or not to save the anndata to H5AD files, 
 # Saves latent space and denoised data
-save_adata = True
+save_adata = False
 
 # Required for Databricks Unity Catalog Environment, as Scanpy cannot write H5AD files
 # directly to external storage on Google Cloud. 
@@ -183,8 +179,6 @@ results_directory = f"{root_output_directory}results/{notebook_name}-{time_signa
 os.mkdir(figures_directory)
 os.mkdir(results_directory)
 
-
-
 # Number of epochs for training
 n_epoch = 150
 
@@ -194,8 +188,15 @@ batch_size = 32
 # Name of column that identifies cell type of each cell
 obs_label_column = "Group" # "cell_type1", "str_label"
 
+# Model configuration
+model_config = {"hidden_dims": [1024, 512],
+              "latent_dim": 512,
+              "encoder_activations": ['leaky_relu', 'leaky_relu'],
+              "decoder_activations": ['leaky_relu', 'leaky_relu', 'relu'],
+              }
+
 # The number of epochs that elapse before training losses are printed
-info_frequency = 10
+info_frequency = 50
 
 # COMMAND ----------
 

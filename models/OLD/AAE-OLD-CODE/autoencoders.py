@@ -42,7 +42,7 @@ subset_masked = sc.AnnData(counts_masked, obs=cellinfo_mask, var=geneinfo_mask)
 subset_masked
 
 sc.tl.pca(subset_masked, n_comps=2)
-sc.pl.pca(subset_masked, color='str_labels',title='Masked PBMC Data')
+sc.pl.pca(subset_masked, color='str_labels',title='Masked PBMC data')
 
 # COMMAND ----------
 
